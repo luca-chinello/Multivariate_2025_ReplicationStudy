@@ -2,24 +2,24 @@ library(tidyverse)
 library(rio)
 
 # Load the data
-data <- import("01-Data/replication_ds.dta")
+df <- import("01-Data/replication_ds.dta")
 
 # Check the dimensions of the data
-dim(data)
+dim(df)
 
 # Check the structure of the data
-view(data)
+view(df)
 
 # Check the statistics of each variable
 # D38 that end with W9 refer to data in 2016, D38 that end with post refer to data in 2020
-summary(select(data, D38_01_W9, D38_02_W9, D38_03_W9, D38_04_W9,
+summary(select(df, D38_01_W9, D38_02_W9, D38_03_W9, D38_04_W9,
                D38_post_01, D38_post_02, D38_post_03, D38_post_04,
                SEX, ANNO, AMP, ZONA, scolarita,
                S21_1, S21_2, S21_3, S21_4))
 
 # Data management: variables recode and creation
-data <- data %>%
-  mutate(across(c(D38_01_W9:D38_04_W9), ~ ifelse(. == 12, NA, .))) %>%
+df <- df %>%
+  mutate(across(c(D38_01_W9, D38_02_W9, D38_03_W9, D38_04_W9), ~ ifelse(. == 12, NA, .)))%>%
   mutate(moon1 = D38_01_W9 - 1,
          vacc1 = D38_02_W9 - 1,
          stam1 = D38_03_W9 - 1,
@@ -39,3 +39,35 @@ data <- data %>%
          diff_vacc = vacc2 - vacc1,
          diff_stam = stam2 - stam1,
          diff_chem = chem2 - chem1)
+
+# Control variables
+df <- df %>%
+  mutate(anno2 = suppressWarnings(as.numeric(as.character(ANNO))),
+         age = 2020 - anno2,
+         titstu = case_when(
+           scolarita %in% c(1, 2) ~ "Low",
+           scolarita %in% c(3, 4, 5) ~ "Medium",
+           scolarita %in% 6:11 ~ "High"
+         ),
+         sindes = case_when(
+           D4_post %in% c(1, 2) ~ "Sx",
+           D4_post %in% c(3, 4, 5) ~ "Csx",
+           D4_post == 6 ~ "C",
+           D4_post %in% c(7, 8, 9) ~ "Cdx",
+           D4_post %in% c(10, 11) ~ "Dx",
+           D4_post == 13 ~ "NC"
+         )) %>%
+  mutate(
+    stealth1 = ifelse(S21_1 == 12, NA, S21_1),
+    stealth2 = ifelse(S21_2 == 12, NA, S21_2),
+    stealth3 = ifelse(S21_3 == 12, NA, S21_3),
+    stealth4 = ifelse(S21_4 == 12, NA, S21_4),
+    stealth = rowMeans(across(c(stealth1, stealth2, stealth3, stealth4)), na.rm = TRUE)
+  ) %>%
+  rename(gender = SEX, zgp5 = ZONA)
+
+# Regression tables
+models <- lapply(c("diff_moon", "diff_vacc", "diff_stam", "diff_chem"), function(dep) {
+  lm(as.formula(paste(dep, "~ gender + age + titstu + stealth + sindes")), data = data %>% filter(!is.na(consp1) & !is.na(consp2)))
+})
+
