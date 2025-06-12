@@ -67,7 +67,49 @@ df <- df %>%
   rename(gender = SEX, zgp5 = ZONA)
 
 # Regression tables
-models <- lapply(c("diff_moon", "diff_vacc", "diff_stam", "diff_chem"), function(dep) {
-  lm(as.formula(paste(dep, "~ gender + age + titstu + stealth + sindes")), data = data %>% filter(!is.na(consp1) & !is.na(consp2)))
-})
+model_moon <- lm(diff_moon ~ factor(gender) + age + factor(titstu) + stealth + factor(sindes), data = df, subset = !is.na(consp1) & !is.na(consp2))
+summary(model_moon)
+
+
+model_vacc <- lm(diff_vacc ~ factor(gender) + age + factor(titstu) + stealth + factor(sindes), data = df, subset = !is.na(consp1) & !is.na(consp2))
+summary(model_vacc)
+
+model_stam <- lm(diff_stam ~ factor(gender) + age + factor(titstu) + stealth + factor(sindes), data = df, subset = !is.na(consp1) & !is.na(consp2))
+summary(model_stam)
+
+model_chem <- lm(diff_chem ~ factor(gender) + age + factor(titstu) + stealth + factor(sindes), data = df, subset = !is.na(consp1) & !is.na(consp2))
+summary(model_chem)
+
+
+# Margins (TBD) - table 2
+
+# Table A1
+# Group 1: pre-beliefs
+summary(select(df, moon1, vacc1, stam1, chem1))
+
+# Group 2: post-beliefs
+summary(select(df, moon2, vacc2, stam2, chem2))
+
+# Group 3: control variables
+summary(select(df, gender, age, titstu, stealth, sindes))
+
+#Table A2
+
+# Table A3
+print_joint_frequencies <- function(df, var_pre, var_post) {
+  tab <- table(df[[var_pre]], df[[var_post]])
+  cat("\nJoint frequency:", var_pre, "vs", var_post, "\n")
+  print(tab)
+  cat("\nPercentage (of the total):\n")
+  print(round(prop.table(tab) * 100, 2))
+}
+
+# Exdcuting the function for each conspiracy theory
+print_joint_frequencies(df, "moon1_c", "moon2_c")
+print_joint_frequencies(df, "vacc1_c", "vacc2_c")
+print_joint_frequencies(df, "stam1_c", "stam2_c")
+print_joint_frequencies(df, "chem1_c", "chem2_c")
+
+# Figure 1
+
 
