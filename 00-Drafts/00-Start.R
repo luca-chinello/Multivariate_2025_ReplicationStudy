@@ -70,7 +70,6 @@ df <- df %>%
 model_moon <- lm(diff_moon ~ factor(gender) + age + factor(titstu) + stealth + factor(sindes), data = df, subset = !is.na(consp1) & !is.na(consp2))
 summary(model_moon)
 
-
 model_vacc <- lm(diff_vacc ~ factor(gender) + age + factor(titstu) + stealth + factor(sindes), data = df, subset = !is.na(consp1) & !is.na(consp2))
 summary(model_vacc)
 
@@ -81,7 +80,19 @@ model_chem <- lm(diff_chem ~ factor(gender) + age + factor(titstu) + stealth + f
 summary(model_chem)
 
 
-# Margins (TBD) - table 2
+# Margins - Table 2
+library(margins)
+margin_moon <- margins(model_moon)
+summary(margin_moon)
+
+margin_vacc <- margins(model_vacc)
+summary(margin_vacc)
+
+margin_stam <- margins(model_stam)
+summary(margin_stam)
+
+margin_chem <- margins(model_chem)
+summary(margin_chem)
 
 # Table A1
 # Group 1: pre-beliefs
@@ -94,6 +105,33 @@ summary(select(df, moon2, vacc2, stam2, chem2))
 summary(select(df, gender, age, titstu, stealth, sindes))
 
 #Table A2
+# Assicurati di avere caricato dplyr
+library(dplyr)
+
+# Crea le variabili totali solo per i casi validi
+df <- df %>%
+  mutate(
+    consp1_tot = ifelse(!is.na(consp1) & !is.na(consp2),
+                        moon1_b + vacc1_b + stam1_b + chem1_b, NA),
+    consp2_tot = ifelse(!is.na(consp1) & !is.na(consp2),
+                        moon2_b + vacc2_b + stam2_b + chem2_b, NA)
+  )
+
+
+# Frequenze assolute
+cat("\nconsp1_tot frequencies:\n")
+print(table(df$consp1_tot, useNA = "ifany"))
+
+cat("\nconsp2_tot frequencies:\n")
+print(table(df$consp2_tot, useNA = "ifany"))
+
+# Percentuali
+cat("\nconsp1_tot percentages:\n")
+print(round(prop.table(table(df$consp1_tot)) * 100, 2))
+
+cat("\nconsp2_tot percentages:\n")
+print(round(prop.table(table(df$consp2_tot)) * 100, 2))
+
 
 # Table A3
 print_joint_frequencies <- function(df, var_pre, var_post) {
@@ -111,5 +149,44 @@ print_joint_frequencies(df, "stam1_c", "stam2_c")
 print_joint_frequencies(df, "chem1_c", "chem2_c")
 
 # Figure 1
+library(fixest)  # per modelli panel con effetti fissi
+library(emmeans) # per i margini
+
+# Rinomina le variabili
+df <- df %>%
+  rename(
+    pre_1 = moon1, pre_2 = vacc1, pre_3 = stam1, pre_4 = chem1,
+    post_1 = moon2, post_2 = vacc2, post_3 = stam2, post_4 = chem2,
+    diff_1 = diff_moon, diff_2 = diff_vacc, diff_3 = diff_stam, diff_4 = diff_chem
+  ) %>%
+  mutate(id_ = row_number())
+
+# Reshape long
+pre_long <- df %>%
+  select(id_, starts_with("pre_")) %>%
+  pivot_longer(cols = starts_with("pre_"), names_to = "consp", names_prefix = "pre_", values_to = "pre")
+
+post_long <- df %>%
+  select(id_, starts_with("post_")) %>%
+  pivot_longer(cols = starts_with("post_"), names_to = "consp", names_prefix = "post_", values_to = "post")
+
+diff_long <- df %>%
+  select(id_, starts_with("diff_")) %>%
+  pivot_longer(cols = starts_with("diff_"), names_to = "consp", names_prefix = "diff_", values_to = "diff")
+
+df_long <- pre_long %>%
+  left_join(post_long, by = c("id_", "consp")) %>%
+  left_join(diff_long, by = c("id_", "consp"))
+
+# Modello a effetti fissi
+model <- feols(diff ~ factor(pre) * factor(consp) | id_, data = df_long)
+
+# Calcolo dei margini attesi
+emm <- emmeans(model, ~ pre * consp, at = list(pre = 0:10, consp = 1:4))
+summary(emm)
+
+# Visualizzazione
+plot(emm, comparisons = TRUE) +
+  labs(title = "Margini attesi per pre e consp", x = "pre", y = "diff")
 
 
