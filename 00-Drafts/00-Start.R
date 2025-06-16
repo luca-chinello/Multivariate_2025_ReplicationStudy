@@ -21,22 +21,22 @@ summary(select(df, D38_01_W9, D38_02_W9, D38_03_W9, D38_04_W9,
 df <- df %>%
   mutate(across(c(D38_01_W9, D38_02_W9, D38_03_W9, D38_04_W9), ~ ifelse(. == 12, NA, .)))%>%
   mutate(moon1 = D38_01_W9 - 1,
-         vacc1 = D38_02_W9 - 1,
-         stam1 = D38_03_W9 - 1,
+         vacc1 = D38_02_W9 - 1,             # Renaming the variables for the pre-beliefs and changing the scale
+         stam1 = D38_03_W9 - 1,             # from 1-12 to 0-11 (11 = NA)            
          chem1 = D38_04_W9 - 1
   ) %>%
-  mutate(consp1 = rowMeans(select(., moon1, vacc1, stam1, chem1), na.rm = TRUE)) %>%
+  mutate(consp1 = rowMeans(select(., moon1, vacc1, stam1, chem1), na.rm = TRUE)) %>%   # Calculating the mean for each variable
   mutate(moon2 = D38_post_01 - 1,
-         vacc2 = D38_post_02 - 1,
-         stam2 = D38_post_03 - 1,
+         vacc2 = D38_post_02 - 1,           # Renaming the variables for the post-beliefs and changing the scale
+         stam2 = D38_post_03 - 1,           # from 1-12 to 0-11 (11 = NA)
          chem2 = D38_post_04 - 1
   ) %>%
-  mutate(consp2 = rowMeans(select(., moon2, vacc2, stam2, chem2), na.rm = TRUE)) %>%
-  mutate(across(c(moon1, vacc1, stam1, chem1, moon2, vacc2, stam2, chem2),
+  mutate(consp2 = rowMeans(select(., moon2, vacc2, stam2, chem2), na.rm = TRUE)) %>%   # Calculating the mean for each variable
+  mutate(across(c(moon1, vacc1, stam1, chem1, moon2, vacc2, stam2, chem2),    #creating new columns for recoding purposes
                 list(b = ~ ifelse(. <= 5.9999, 0, ifelse(. >= 6, 1, NA)),
                      c = ~ ifelse(. == 0, 0, ifelse(. <= 5, 1, ifelse(. >= 6, 2, NA)))))) %>%
   mutate(diff_moon = moon2 - moon1,
-         diff_vacc = vacc2 - vacc1,
+         diff_vacc = vacc2 - vacc1,         # Calculating the difference between pre and post beliefs
          diff_stam = stam2 - stam1,
          diff_chem = chem2 - chem1)
 
@@ -66,6 +66,10 @@ df <- df %>%
   ) %>%
   rename(gender = SEX, zgp5 = ZONA)
 
+# Check the reliability of stealth variables
+library(psych)
+psych::alpha(df[, c("stealth1", "stealth2", "stealth3", "stealth4")])
+
 # Regression tables
 model_moon <- lm(diff_moon ~ factor(gender) + age + factor(titstu) + stealth + factor(sindes), data = df, subset = !is.na(consp1) & !is.na(consp2))
 summary(model_moon)
@@ -79,6 +83,8 @@ summary(model_stam)
 model_chem <- lm(diff_chem ~ factor(gender) + age + factor(titstu) + stealth + factor(sindes), data = df, subset = !is.na(consp1) & !is.na(consp2))
 summary(model_chem)
 
+library(stargazer)
+stargazer(model_moon, model_vacc, model_stam, model_chem, type = "text")
 
 # Margins - Table 2
 library(margins)
@@ -94,6 +100,47 @@ summary(margin_stam)
 margin_chem <- margins(model_chem)
 summary(margin_chem)
 
+
+
+
+
+
+
+library(emmeans)
+
+df <- df %>%
+  mutate(across(c(gender, sindes, titstu), as.factor))
+
+
+# Margini per model_moon
+emmeans(model_moon, ~ gender, at = list(gender = c(1, 2)))
+emmeans(model_moon, ~ age, at = list(age = c(25, 65)))
+emmeans(model_moon, ~ stealth, at = list(stealth = c(3, 9)))
+emmeans(model_moon, ~ sindes, at = list(sindes = c("Sx", "Dx")))
+
+# Margini per model_vacc
+emmeans(model_vacc, ~ gender, at = list(gender = c(1, 2)))
+emmeans(model_vacc, ~ age, at = list(age = c(25, 65)))
+emmeans(model_vacc, ~ stealth, at = list(stealth = c(3, 9)))
+emmeans(model_vacc, ~ sindes, at = list(sindes = c("Sx", "Dx")))
+
+# Margini per model_stam
+emmeans(model_stam, ~ gender, at = list(gender = c(1, 2)))
+emmeans(model_stam, ~ age, at = list(age = c(25, 65)))
+emmeans(model_stam, ~ stealth, at = list(stealth = c(3, 9)))
+emmeans(model_stam, ~ sindes, at = list(sindes = c("Sx", "Dx")))
+
+# Margini per model_chem
+emmeans(model_chem, ~ gender, at = list(gender = c(1, 2)))
+emmeans(model_chem, ~ age, at = list(age = c(25, 65)))
+emmeans(model_chem, ~ stealth, at = list(stealth = c(3, 9)))
+emmeans(model_chem, ~ sindes, at = list(sindes = c("Sx", "Dx")))
+
+# Summary statistics for the variables
+summary(emmeans(model_moon, ~ gender, at = list(gender = c(1, 2))))
+plot(emmeans(model_moon, ~ gender, at = list(gender = c(1, 2))))
+
+
 # Table A1
 # Group 1: pre-beliefs
 summary(select(df, moon1, vacc1, stam1, chem1))
@@ -105,10 +152,6 @@ summary(select(df, moon2, vacc2, stam2, chem2))
 summary(select(df, gender, age, titstu, stealth, sindes))
 
 #Table A2
-# Assicurati di avere caricato dplyr
-library(dplyr)
-
-# Crea le variabili totali solo per i casi validi
 df <- df %>%
   mutate(
     consp1_tot = ifelse(!is.na(consp1) & !is.na(consp2),
@@ -116,16 +159,17 @@ df <- df %>%
     consp2_tot = ifelse(!is.na(consp1) & !is.na(consp2),
                         moon2_b + vacc2_b + stam2_b + chem2_b, NA)
   )
+summary(df$consp1_tot, na.rm = TRUE)
+summary(df$consp2_tot, na.rm = TRUE)
 
-
-# Frequenze assolute
+# Absolute frequencies
 cat("\nconsp1_tot frequencies:\n")
 print(table(df$consp1_tot, useNA = "ifany"))
 
 cat("\nconsp2_tot frequencies:\n")
 print(table(df$consp2_tot, useNA = "ifany"))
 
-# Percentuali
+# Percentages
 cat("\nconsp1_tot percentages:\n")
 print(round(prop.table(table(df$consp1_tot)) * 100, 2))
 
@@ -152,7 +196,7 @@ print_joint_frequencies(df, "chem1_c", "chem2_c")
 library(fixest)  # per modelli panel con effetti fissi
 library(emmeans) # per i margini
 
-# Rinomina le variabili
+# Renaming the variables
 df <- df %>%
   rename(
     pre_1 = moon1, pre_2 = vacc1, pre_3 = stam1, pre_4 = chem1,
