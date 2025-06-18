@@ -1,33 +1,30 @@
-#----------------------------------------------------------------#
-#****** REPLICATION MATERIAL - The life cycle of conspiracy theories: 
-#****** Evidence from a long-term panel survey on conspiracy beliefs in Italy
-#****** M. Mancosu - S. Vassallo
-#****** #****** SCRIPT R - Traduzione da Stata
-#----------------------------------------------------------------#
+#REPLICATION MATERIAL - The life cycle of conspiracy theories: 
+#Evidence from a long-term panel survey on conspiracy beliefs in Italy
+# Original authors: M. Mancosu - S. Vassallo
+# Replicated by: Luca Chinello
+# SCRIPT R - from STATA
 
 
-# Caricamento delle librerie necessarie
-library(haven)       # Per leggere i file .dta di Stata
-library(dplyr)       # Per la manipolazione dei dati
-library(psych)       # Per l'alpha di Cronbach e le statistiche descrittive
-library(margins)     # Per calcolare gli effetti marginali (equivalente a `margins` di Stata)
-library(plm)         # Per modelli a effetti fissi (equivalente a `xtreg, fe`)
-library(tidyr)       # Per la trasformazione dei dati (reshape)
-library(ggplot2)     # Per i grafici (alternativa a `marginsplot`)
+#Loading necessary libraries
+
+library(haven)       # From Stata .dta to R data frame
+library(dplyr)       
+library(psych)       # for Cronbach's alpha and descriptive statistics
+library(margins)     # For marginal effects
+library(plm)         # For fixed effects models
+library(tidyr)       
+library(ggplot2)     
 
 
+# Load the dataset
 
-# Caricare il dataset (equivalente a `use "replication_ds.dta",clear`)
 df <- read_dta("01-Data/replication_ds.dta")
 
 
-#----------------------------------------------------------------#
-#*********************** DESCRIPTIVES OF THE VAR EMPLOYED *********
-#----------------------------------------------------------------#
+#DESCRIPTIVES OF THE VARIABLES EMPLOYED
 
-# Equivalente a `fre D38_01_W9 D38_02_W9 D38_03_W9 D38_04_W9` ecc.
-# Usiamo la funzione `table()` di R per ottenere le frequenze
-# Le stamperemo una per una come nello script Stata.
+# Printing the frequenciesn of each column of interest
+
 print(table(df$D38_01_W9, useNA = "ifany"))
 print(table(df$D38_02_W9, useNA = "ifany"))
 print(table(df$D38_03_W9, useNA = "ifany"))
@@ -50,45 +47,49 @@ print(table(df$S21_3, useNA = "ifany"))
 print(table(df$S21_4, useNA = "ifany"))
 
 
-#----------------------------------------------------------------#
-#*********************** DATA MANAGEMENT **************************
-#----------------------------------------------------------------#
+# DATA MANAGEMENT 
 
 df <- df %>%
   mutate(
-    # Equivalente a: recode D38_01_W9 D38_02_W9 D38_03_W9 D38_04_W9 (12=.),gen(moon1 vacc1 stam1 chem1)
+    
+    # Renaming pre-2020 the variables
     moon1 = na_if(D38_01_W9, 12),
     vacc1 = na_if(D38_02_W9, 12),
     stam1 = na_if(D38_03_W9, 12),
     chem1 = na_if(D38_04_W9, 12),
     
-    # Equivalente a: replace moon1 = moon1 - 1 (e per le altre variabili)
+    # Rescaling from 1-12 to 0-11
     moon1 = moon1 - 1,
     vacc1 = vacc1 - 1,
     stam1 = stam1 - 1,
     chem1 = chem1 - 1,
     
-    # Equivalente a: recode D38_post_01 D38_post_02 D38_post_03 D38_post_04 (12=.),gen(moon2 vacc2 stam2 chem2)
+    # renaming post-2020 variables
     moon2 = na_if(D38_post_01, 12),
     vacc2 = na_if(D38_post_02, 12),
     stam2 = na_if(D38_post_03, 12),
     chem2 = na_if(D38_post_04, 12),
     
-    # Equivalente a: replace moon2 = moon2 - 1 (e per le altre variabili)
+    # Rescaling from 1-12 to 0-11
     moon2 = moon2 - 1,
     vacc2 = vacc2 - 1,
     stam2 = stam2 - 1,
     chem2 = chem2 - 1
   )
 
-# Equivalente a: gen consp1 = (moon1 + vacc1 + stam1 + chem1)/4
+
+# Generating the means of pre-2020 conspiracy beliefs
+
 df$consp1 <- rowMeans(df[, c("moon1", "vacc1", "stam1", "chem1")], na.rm = FALSE)
 
-# Equivalente a: gen consp2 = (moon2 + vacc2 + stam2 + chem2)/4
+
+# Generating the means of post-2020 conspiracy beliefs
+
 df$consp2 <- rowMeans(df[, c("moon2", "vacc2", "stam2", "chem2")], na.rm = FALSE)
 
 
-# Equivalente a: recode ... (0/5.9999 = 0) (6/10 = 1),gen(...)
+# Generating new columns with different types of dummy variables
+
 df <- df %>%
   mutate(
     across(
@@ -102,7 +103,9 @@ df <- df %>%
     )
   )
 
+
 # Equivalente a: recode ... (0 = 0) (1/5 = 1) (6/10=2),gen(...)
+
 df <- df %>%
   mutate(
     across(
@@ -117,7 +120,9 @@ df <- df %>%
     )
   )
 
-# Equivalente a: gen diff_moon = moon2-moon1 (e per le altre)
+
+# Generating columns with  means differences pre and post 2020
+
 df <- df %>%
   mutate(
     diff_moon = moon2 - moon1,
@@ -126,21 +131,23 @@ df <- df %>%
     diff_chem = chem2 - chem1
   )
 
-#****** controls
+
+# CONTROLS
 
 df <- df %>%
-  # Equivalente a: destring ANNO,gen(anno2) e gen age = 2020 - anno2
   mutate(
     anno2 = as.numeric(ANNO),
     age = 2020 - anno2,
-    # Equivalente a: recode scolarita (1 2=1 "Bassa") (3 4 5=2 "Media") (6 7 8 9 10 11=3 "Alta"),gen(titstu)
+    
+    # Recoding education level: 1 = Low, 2 = Medium, 3 = High
     titstu = factor(case_when(
       scolarita %in% c(1, 2) ~ 1,
       scolarita %in% c(3, 4, 5) ~ 2,
       scolarita %in% c(6, 7, 8, 9, 10, 11) ~ 3
     ), 
     labels = c("Bassa", "Media", "Alta")),
-    # Equivalente a: recode D4_post ... gen(sindes)
+    
+    # Recoding political beliefs from 1 = Left to 5 = Right
     sindes = factor(case_when(
       D4_post %in% c(1, 2) ~ 1,
       D4_post %in% c(3, 4, 5) ~ 2,
@@ -151,108 +158,104 @@ df <- df %>%
       TRUE ~ NA_real_
     ), labels = c("Sx", "Csx", "C", "Cdx", "Dx", "NC"))
   ) %>%
-  # Equivalente a: rename ZONA zgp5
   rename(zgp5 = ZONA) %>%
-  # Equivalente a: rename SEX gender
   rename(gender = SEX) %>% 
   mutate(gender = as.factor(gender))
 
-# Gestione delle variabili "stealth"
+
+# Stealth variables (political trust)
+# stealth1 = necessity of a party system
+# stealth2 = participation to the democratic life thanks to the party system
+# stealth3 = people are not enough interested in politics
+# stealth4 = No party system means no democracy. How much do you agree?
+
 df <- df %>%
   mutate(
-    # Equivalente a: recode S21_1 S21_2 S21_3 S21_4 (12=.),gen(stealth1 stealth2 stealth3 stealth4)
     stealth1 = na_if(S21_1, 12),
     stealth2 = na_if(S21_2, 12),
     stealth3 = na_if(S21_3, 12),
     stealth4 = na_if(S21_4, 12)
   )
 
-# Equivalente a: alpha stealth1 stealth2 stealth3 stealth4
+# Chronbach's alpha for stealth variables
+
 print(psych::alpha(df[, c("stealth1", "stealth2", "stealth3", "stealth4")], check.keys=FALSE))
 
-# Equivalente a: gen stealth = (stealth1 + stealth2 + stealth3 + stealth4)/4
+
+# Mean of stealth variables
+
 df$stealth <- rowMeans(df[, c("stealth1", "stealth2", "stealth3", "stealth4")], na.rm = FALSE)
 
-# Filtrare i dati per le regressioni, come `if consp1!=. & consp2!=.` in Stata
+
+# Removing rows with NA in consp1 and consp2
+
 regression_data <- df %>%
   filter(!is.na(consp1) & !is.na(consp2))
 
 
-#----------------------------------------------------------------#
-#*********************** TABLE 1 **********************************
-#***************** COEFFICIENTS ONLY ****************************
-#----------------------------------------------------------------#
-# In R, `i.variable` di Stata è gestito creando un fattore `factor(variable)`. 
-# Le variabili numeriche sono trattate come continue di default (`c.`).
 
-# Modello per diff_moon
+# COEFFICIENTS ONLY
+
+# diff_moon regression model
 model_moon <- lm(diff_moon ~ gender + age + titstu + stealth + sindes, data = regression_data)
 summary(model_moon)
 
-# Modello per diff_vacc
+# diff_vacc regression model
 model_vacc <- lm(diff_vacc ~ gender + age + titstu + stealth + sindes, data = regression_data)
 summary(model_vacc)
 
-# Modello per diff_stam
+# diff_stam regression model
 model_stam <- lm(diff_stam ~ gender + age + titstu + stealth + sindes, data = regression_data)
 summary(model_stam)
 
-# Modello per diff_chem
+# diff_chem regression model
 model_chem <- lm(diff_chem ~ gender + age + titstu + stealth + sindes, data = regression_data)
 summary(model_chem)
 
 
-#----------------------------------------------------------------#
-#*********************** TABLE 2 **********************************
-#***************** COEFFICIENTS ONLY ****************************
-#----------------------------------------------------------------#
-# Equivalente a `margins,at(...)`
+# TABLE 2  
+# COEFFICIENTS ONLY
 
-# Margini per il modello diff_moon
+# model_moon margins
 margins(model_moon, at = list(gender = 1:2))
 margins(model_moon, at = list(age = c(25, 65)))
 margins(model_moon, at = list(stealth = c(3, 9)))
 margins(model_moon, at = list(sindes = c("Sx", "Dx"))) # Nota: `sindes` è un fattore, si usano i livelli
 
-# Margini per il modello diff_vacc
+# model_vacc margins
 print(margins(model_vacc, at = list(gender = 1:2)))
 print(margins(model_vacc, at = list(age = c(25, 65))))
 print(margins(model_vacc, at = list(stealth = c(3, 9))))
 print(margins(model_vacc, at = list(sindes = c("Sx", "Dx"))))
 
-# Margini per il modello diff_stam
+# model_stam margins
 print(margins(model_stam, at = list(gender = 1:2)))
 print(margins(model_stam, at = list(age = c(25, 65))))
 print(margins(model_stam, at = list(stealth = c(3, 9))))
 print(margins(model_stam, at = list(sindes = c("Sx", "Dx"))))
 
-# Margini per il modello diff_chem
+# model_chem margins
 print(margins(model_chem, at = list(gender = 1:2)))
 print(margins(model_chem, at = list(age = c(25, 65))))
 print(margins(model_chem, at = list(stealth = c(3, 9))))
 print(margins(model_chem, at = list(sindes = c("Sx", "Dx"))))
 
 
-#----------------------------------------------------------------#
-#*********************** TABLE A1 *********************************
-#***************** COEFFICIENTS ONLY ****************************
-#----------------------------------------------------------------#
-# Equivalente a `tabstat ..., statistics(mean sd min max)`
-# La funzione `describe` del pacchetto `psych` è molto simile
+# TABLE A1
+# COEFFICIENTS ONLY
 
 describe(df[, c("moon1", "vacc1", "stam1", "chem1")])
 describe(df[, c("moon2", "vacc2", "stam2", "chem2")])
 describe(df[, c("gender", "age", "stealth")])
-# Per le variabili fattoriali, `describe` non è l'ideale, mostriamo le tabelle di frequenza
+
 table(df$titstu)
 table(df$sindes)
 
 
-#----------------------------------------------------------------#
-#*********************** TABLE A2 *********************************
-#***************** COEFFICIENTS ONLY ****************************
-#----------------------------------------------------------------#
-# Equivalente a `gen consp1_tot = ...` e `gen consp2_tot = ...`
+# TABLE A2 
+# COEFFICIENTS ONLY 
+# Generating total conspiracy belief scores before and after 2020
+
 analysis_data_A2 <- df %>%
   filter(!is.na(consp1) & !is.na(consp2)) %>%
   mutate(
@@ -260,19 +263,15 @@ analysis_data_A2 <- df %>%
     consp2_tot = rowSums(select(., moon2_b, vacc2_b, stam2_b, chem2_b), na.rm = FALSE)
   )
 
-# Equivalente a `fre consp1_tot consp2_tot`
 table(analysis_data_A2$consp1_tot, useNA = "ifany")
 table(analysis_data_A2$consp2_tot, useNA = "ifany")
 
-# Questi risultati mostrano la distribuzione degli intervistati in base al numero totale di teorie del 
-# complotto a cui credevano, prima (consp1_tot) e dopo (consp2_tot).
-# Il punteggio va da 0 (non credere a nessuna delle quattro teorie) a 4 (credere a tutte e quattro).
+# Results show how much interviewees believed in conspiracy theories before (consp1_tot) and 
+# after (consp2_tot) 2020
+# 0 = none, 4 = all four beliefs
 
-#----------------------------------------------------------------#
-#*********************** TABLE A3 *********************************
-#***************** RAW PERCENTAGES ONLY *************************
-#----------------------------------------------------------------#
-# Equivalente a `fre moon1_c moon2_c`, ecc.
+
+# TABLE A3 
 # Displaying how beliefs have changed pre and post 2020: 0 (no belief), 1 (low belief), 2 (high belief)
 
 # Moon landing
@@ -292,15 +291,9 @@ table(df$chem1_c, useNA = "ifany")
 table(df$chem2_c, useNA = "ifany")
 
 
-#----------------------------------------------------------------#
-#*********************** FIGURE 1 *********************************
-#----------------------------------------------------------------#
+# FIGURE 1
 
-#----------------------------------------------------------------#
-#*********************** FIGURE 1 *********************************
-#----------------------------------------------------------------#
-# 1. PREPARAZIONE DATI LUNGHI (come nella prima versione)
-#    (Assumiamo che 'df' esista e contenga le variabili moon1, diff_moon, etc.)
+# Creation of the long format data frame for Figure 1
 
 df_long <- df %>%
   mutate(id_ = row_number()) %>%
@@ -321,19 +314,15 @@ df_long <- df %>%
 model_data <- df_long %>%
   filter(!is.na(diff) & !is.na(pre) & !is.na(consp))
 
-# 2. CREAZIONE DEL MODELLO CORRETTO
-#    Trattiamo 'pre' come un FATTORE, come indicato da 'i.pre' in Stata.
-#    Useremo il modello lm() perché è quello che più probabilmente è stato usato
-#    per la visualizzazione nel paper, come discusso in precedenza.
+# Generating a simple, broad regression model
+
 final_lm_model <- lm(diff ~ factor(pre) * consp, data = model_data)
 
-# 3. CALCOLO DELLE PREVISIONI DAL MODELLO CORRETTO
 predictions_final <- ggeffects::ggpredict(final_lm_model, terms = c("pre [0:10]", "consp"))
 
 
-# 4. CREAZIONE DEL GRAFICO FINALE
-#    Il codice per il grafico non cambia.
-ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
+# Plot
+figure1 <- ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
   geom_line(aes(linetype = group), color = "black") +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2, color = "black") +
   geom_point(aes(shape = group), color = "black", fill = "white", size = 2.5) +
@@ -359,3 +348,4 @@ ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
     axis.ticks = element_line(color = "black")
   )
 
+ggsave("figure1_replicationR.png", plot = figure1, width = 10, height = 6)

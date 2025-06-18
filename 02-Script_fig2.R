@@ -38,4 +38,4 @@ figure2 <- ggplot(data_long, aes(x = edate, y = proportion, color = belief_type,
 # Mostra il grafico finale
 print(figure2)
 
-ggsave("figure2_replicationR.png", plot = figure2_final, width = 10, height = 6)
+ggsave("figure2_replicationR.png", plot = figure2, width = 10, height = 6)
