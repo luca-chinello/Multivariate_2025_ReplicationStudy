@@ -138,7 +138,8 @@ df <- df %>%
       scolarita %in% c(1, 2) ~ 1,
       scolarita %in% c(3, 4, 5) ~ 2,
       scolarita %in% c(6, 7, 8, 9, 10, 11) ~ 3
-    ), labels = c("Bassa", "Media", "Alta")),
+    ), 
+    labels = c("Bassa", "Media", "Alta")),
     # Equivalente a: recode D4_post ... gen(sindes)
     sindes = factor(case_when(
       D4_post %in% c(1, 2) ~ 1,
@@ -295,57 +296,66 @@ table(df$chem2_c, useNA = "ifany")
 #*********************** FIGURE 1 *********************************
 #----------------------------------------------------------------#
 
+#----------------------------------------------------------------#
+#*********************** FIGURE 1 *********************************
+#----------------------------------------------------------------#
+# 1. PREPARAZIONE DATI LUNGHI (come nella prima versione)
+#    (Assumiamo che 'df' esista e contenga le variabili moon1, diff_moon, etc.)
+
 df_long <- df %>%
-  # Aggiungiamo un ID univoco per ogni riga, come fa Stata con `gen id_ = _n`
   mutate(id_ = row_number()) %>%
-  
-  # 1. Rinominiamo le colonne per avere uno "stub" comune (pre, post, diff)
-  #    e un identificatore numerico (1=moon, 2=vacc, 3=stam, 4=chem)
-  #    Questo passaggio imita il comando `rename` di Stata.
   rename(
-    pre_1 = moon1, pre_2 = vacc1, pre_3 = stam1, pre_4 = chem1,
-    post_1 = moon2, post_2 = vacc2, post_3 = stam2, post_4 = chem2,
-    diff_1 = diff_moon, diff_2 = diff_vacc, diff_3 = diff_stam, diff_4 = diff_chem
+    pre_moon = moon1, pre_vacc = vacc1, pre_stam = stam1, pre_chem = chem1,
+    post_moon = moon2, post_vacc = vacc2, post_stam = stam2, post_chem = chem2,
+    diff_moon = diff_moon, diff_vacc = diff_vacc, diff_stam = diff_stam, diff_chem = diff_chem
   ) %>%
-  
-  # 2. Eseguiamo il pivot. Questo ora è l'equivalente di `reshape long`.
   pivot_longer(
     cols = starts_with(c("pre_", "post_", "diff_")),
     names_to = c(".value", "consp"),
-    names_sep = "_"
-  )
+    names_pattern = "([a-z]+)_([a-z]+)"
+  ) %>%
+  mutate(consp = factor(consp, 
+                        levels = c("moon", "vacc", "stam", "chem"),
+                        labels = c("Moon", "Vaccine", "Stamina", "Chemtrails")))
 
-
-# Equivalente a: xtreg diff_ i.pre_##i.consp ,i(id_) fe
-# Il modello a effetti fissi (within) in `plm` gestisce l'interazione
-fe_model <- plm(diff ~ pre * factor(consp), data = df_long,
-                index = "id_", model = "within")
-summary(fe_model)
-
-
-# Equivalente a: margins,at(pre=(0(1)10) consp=(1 2 3 4)) e marginsplot
-# Usiamo il pacchetto `ggeffects` per calcolare e graficare le previsioni marginali
-
-# 1. Creiamo un nuovo dataframe pulito, rimuovendo le righe con valori mancanti
-#    nelle variabili che useremo nel modello.
 model_data <- df_long %>%
   filter(!is.na(diff) & !is.na(pre) & !is.na(consp))
 
-# 2. Adattiamo il modello usando questo nuovo dataframe pulito.
-fe_model_clean <- plm(diff ~ pre * factor(consp), data = model_data,
-                      index = "id_", model = "within")
+# 2. CREAZIONE DEL MODELLO CORRETTO
+#    Trattiamo 'pre' come un FATTORE, come indicato da 'i.pre' in Stata.
+#    Useremo il modello lm() perché è quello che più probabilmente è stato usato
+#    per la visualizzazione nel paper, come discusso in precedenza.
+final_lm_model <- lm(diff ~ factor(pre) * consp, data = model_data)
 
-# 3. Ora calcoliamo le previsioni sul modello "pulito". 
-#    Questo dovrebbe risolvere l'errore.
-marginal_effects <- ggeffects::ggpredict(fe_model_clean, terms = c("pre [0:10]", "consp"))
+# 3. CALCOLO DELLE PREVISIONI DAL MODELLO CORRETTO
+predictions_final <- ggeffects::ggpredict(final_lm_model, terms = c("pre [0:10]", "consp"))
 
-# 4. Infine, generiamo il grafico come prima.
-plot(marginal_effects) + 
+
+# 4. CREAZIONE DEL GRAFICO FINALE
+#    Il codice per il grafico non cambia.
+ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
+  geom_line(aes(linetype = group), color = "black") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2, color = "black") +
+  geom_point(aes(shape = group), color = "black", fill = "white", size = 2.5) +
+  scale_linetype_manual(values = c("Moon" = "solid", 
+                                   "Vaccine" = "dashed", 
+                                   "Stamina" = "dotted", 
+                                   "Chemtrails" = "longdash")) +
+  scale_shape_manual(values = c("Moon" = 21,
+                                "Vaccine" = 24,
+                                "Stamina" = 23,
+                                "Chemtrails" = 22)) +
   labs(
-    title = "Effetti marginali della credenza pre sul cambiamento della credenza",
-    x = "Punteggio di credenza Pre (pre)",
-    y = "Cambiamento previsto (diff)",
-    colour = "Teoria",
-    group = "Teoria"
+    y = "2020-2016 difference",
+    x = "2016 wave average",
+    linetype = NULL, 
+    shape = NULL     
   ) +
-  theme_minimal()
+  theme_classic() +
+  theme(
+    legend.position = "right",
+    legend.key = element_rect(fill = "transparent", colour = "transparent"),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black")
+  )
+
