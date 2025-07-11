@@ -13,7 +13,8 @@ library(psych)       # for Cronbach's alpha and descriptive statistics
 library(margins)     # For marginal effects
 library(plm)         # For fixed effects models
 library(tidyr)       
-library(ggplot2)     
+library(ggplot2) 
+library(stargazer)  # For tables plotting
 
 
 # Load the dataset
@@ -23,7 +24,7 @@ df <- read_dta("01-Data/replication_ds.dta")
 
 #DESCRIPTIVES OF THE VARIABLES EMPLOYED
 
-# Printing the frequenciesn of each column of interest
+# Printing the frequencies of each column of interest
 
 print(table(df$D38_01_W9, useNA = "ifany"))
 print(table(df$D38_02_W9, useNA = "ifany"))
@@ -52,7 +53,7 @@ print(table(df$S21_4, useNA = "ifany"))
 df <- df %>%
   mutate(
     
-    # Renaming pre-2020 the variables
+    # Renaming pre-2020 the variables + substituting 12 with NA
     moon1 = na_if(D38_01_W9, 12),
     vacc1 = na_if(D38_02_W9, 12),
     stam1 = na_if(D38_03_W9, 12),
@@ -64,7 +65,7 @@ df <- df %>%
     stam1 = stam1 - 1,
     chem1 = chem1 - 1,
     
-    # renaming post-2020 variables
+    # renaming post-2020 variables + substituting 12 with NA
     moon2 = na_if(D38_post_01, 12),
     vacc2 = na_if(D38_post_02, 12),
     stam2 = na_if(D38_post_03, 12),
@@ -77,6 +78,7 @@ df <- df %>%
     chem2 = chem2 - 1
   )
 
+View(df)
 
 # Generating the means of pre-2020 conspiracy beliefs
 
@@ -100,8 +102,9 @@ df <- df %>%
         TRUE ~ NA_real_
       ),
       .names = "{.col}_b"
+      )
     )
-  )
+  
 
 
 # Equivalente a: recode ... (0 = 0) (1/5 = 1) (6/10=2),gen(...)
@@ -131,11 +134,14 @@ df <- df %>%
     diff_chem = chem2 - chem1
   )
 
+View(df)
+
 
 # CONTROLS
 
 df <- df %>%
   mutate(
+    ANNO = ifelse(ANNO == ".", NA, ANNO),
     anno2 = as.numeric(ANNO),
     age = 2020 - anno2,
     
@@ -194,7 +200,7 @@ regression_data <- df %>%
 
 
 
-# COEFFICIENTS ONLY
+# TABLE 1
 
 # diff_moon regression model
 model_moon <- lm(diff_moon ~ gender + age + titstu + stealth + sindes, data = regression_data)
@@ -212,15 +218,16 @@ summary(model_stam)
 model_chem <- lm(diff_chem ~ gender + age + titstu + stealth + sindes, data = regression_data)
 summary(model_chem)
 
+stargazer(model_moon, model_vacc, model_stam, model_chem, type = "html", out = "03-Output/Table 1.html")
 
-# TABLE 2  
+# TABLE 2
 # COEFFICIENTS ONLY
 
 # model_moon margins
 margins(model_moon, at = list(gender = 1:2))
 margins(model_moon, at = list(age = c(25, 65)))
 margins(model_moon, at = list(stealth = c(3, 9)))
-margins(model_moon, at = list(sindes = c("Sx", "Dx"))) # Nota: `sindes` è un fattore, si usano i livelli
+margins(model_moon, at = list(sindes = c("Sx", "Dx")))
 
 # model_vacc margins
 print(margins(model_vacc, at = list(gender = 1:2)))
@@ -286,6 +293,7 @@ table(df$vacc2_c, useNA = "ifany")
 table(df$stam1_c, useNA = "ifany")
 table(df$stam2_c, useNA = "ifany")
 
+
 # Chemtrails
 table(df$chem1_c, useNA = "ifany")
 table(df$chem2_c, useNA = "ifany")
@@ -314,6 +322,7 @@ df_long <- df %>%
 model_data <- df_long %>%
   filter(!is.na(diff) & !is.na(pre) & !is.na(consp))
 
+
 # Generating a simple, broad regression model
 
 final_lm_model <- lm(diff ~ factor(pre) * consp, data = model_data)
@@ -322,6 +331,7 @@ predictions_final <- ggeffects::ggpredict(final_lm_model, terms = c("pre [0:10]"
 
 
 # Plot
+
 figure1 <- ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
   geom_line(aes(linetype = group), color = "black") +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2, color = "black") +
@@ -348,4 +358,6 @@ figure1 <- ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
     axis.ticks = element_line(color = "black")
   )
 
-ggsave("figure1_replicationR.png", plot = figure1, width = 10, height = 6)
+figure1
+
+ggsave("02-Plots/figure1_replicationR.png", plot = figure1, width = 10, height = 6)

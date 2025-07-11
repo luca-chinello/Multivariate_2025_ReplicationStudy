@@ -15,7 +15,7 @@ data_long <- data_clean %>%
   )
 
 figure2 <- ggplot(data_long, aes(x = edate, y = proportion, color = belief_type, linetype = belief_type)) +
-  geom_smooth(method = "loess", span = 0.6, se = FALSE, size = 1) +
+  geom_smooth(method = "loess", span = 0.6, se = FALSE, linewidth = 1) +
   scale_color_manual(
     values = c("p_cosp" = "darkgrey", "p_comp" = "black"),
     labels = c("p_cosp" = "Derogatory", "p_comp" = "Non-derogatory")
@@ -35,7 +35,6 @@ figure2 <- ggplot(data_long, aes(x = edate, y = proportion, color = belief_type,
   theme_minimal()
 
 
-# Mostra il grafico finale
-print(figure2)
+figure2
 
 ggsave("figure2_replicationR.png", plot = figure2, width = 10, height = 6)
