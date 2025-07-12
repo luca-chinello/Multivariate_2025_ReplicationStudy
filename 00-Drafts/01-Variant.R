@@ -220,6 +220,7 @@ summary(model_chem)
 
 stargazer(model_moon, model_vacc, model_stam, model_chem, type = "html", out = "03-Output/Table 1.html")
 
+
 # TABLE 2
 # COEFFICIENTS ONLY
 
@@ -361,3 +362,111 @@ figure1 <- ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
 figure1
 
 ggsave("02-Plots/figure1_replicationR.png", plot = figure1, width = 10, height = 6)
+
+
+
+### EXTENSIONS!
+## The first extension consists in applying a GLM (logit) to the data
+# We already have a binary version of the variables (value  < 6 means "I don't believe"; value >= 6 means "I believe")
+# When the logit model is applied to 2020 beliefs, it gives us an overview of the factors that influence the belief 
+# in conspiracy theories in 2020. Once we have the results, we can compare the original OLS models (which tell us which
+# factors contribute the most to reducing the belief in conspiracy theories) with the logit models (which tell us the 
+# belief distribution in 2020).
+
+# Moon landing
+logit_moon1 <- glm(moon1_b ~ gender + age + titstu + stealth + sindes, 
+                   data = df, family = binomial(link = "logit"))
+summary(logit_moon1)
+
+
+logit_moon2 <- glm(moon2_b ~ gender + age + titstu + stealth + sindes, 
+                  data = df, family = binomial(link = "logit"))
+summary(logit_moon2)
+
+stargazer(logit_moon1, logit_moon2, type = "html", out = "03-Output/Moon_logit_models.html",
+          title = "Logit models for Moon landing belief pre and post 2020")
+
+# Chemtrails
+logit_chem1 <- glm(chem1_b ~ gender + age + titstu + stealth + sindes, 
+                   data = df, family = binomial(link = "logit"))
+summary(logit_chem1)
+
+
+logit_chem2 <- glm(chem2_b ~ gender + age + titstu + stealth + sindes, 
+                  data = df, family = binomial(link = "logit"))
+summary(logit_chem2)
+
+stargazer(logit_chem1, logit_chem2, type = "html", out = "03-Output/Chem_logit_models.html",
+          title = "Logit models for Chemtrails belief pre and post 2020")
+
+# Vaccini
+logit_vacc1 <- glm(vacc1_b ~ gender + age + titstu + stealth + sindes, 
+                   data = df, family = binomial(link = "logit"))
+summary(logit_vacc1)
+
+logit_vacc2 <- glm(vacc2_b ~ gender + age + titstu + stealth + sindes, 
+                  data = df, family = binomial(link = "logit"))
+summary(logit_vacc2)
+
+stargazer(logit_vacc1, logit_vacc2, type = "html", out = "03-Output/Vacc_logit_models.html",
+          title = "Logit models for Vaccine belief pre and post 2020")
+
+# Stamina
+logit_stam1 <- glm(stam1_b ~ gender + age + titstu + stealth + sindes, 
+                   data = df, family = binomial(link = "logit"))
+summary(logit_stam1)
+
+logit_stam2 <- glm(stam2_b ~ gender + age + titstu + stealth + sindes, 
+                  data = df, family = binomial(link = "logit"))
+summary(logit_stam2)
+
+stargazer(logit_stam1, logit_stam2, type = "html", out = "03-Output/Stam_logit_models.html",
+          title = "Logit models for Stamina belief pre and post 2020")
+
+
+# Table with the results of the logit models
+stargazer(logit_moon1, logit_chem1, logit_vacc1, logit_stam1, 
+          type = "html", out = "03-Output/Logit1_models.html",
+          title = "2016 Separate logit models for each conspiracy belief")
+
+stargazer(logit_moon2, logit_chem2, logit_vacc2, logit_stam2, 
+          type = "html", out = "03-Output/Logit2_models.html",
+          title = "2020 Separate logit models for each conspiracy belief")
+
+# Comparison lm vs logit model results
+stargazer(model_moon, logit_moon2, type = "html", out = "03-Output/Moon_comparison.html",
+          title = "Comparison between lm and logit models for Moon landing belief")
+
+stargazer(model_vacc, logit_vacc2, type = "html", out = "03-Output/Vacc_comparison.html",
+          title = "Comparison between lm and logit models for Vaccine belief")
+
+stargazer(model_stam, logit_stam2, type = "html", out = "03-Output/Stam_comparison.html",
+          title = "Comparison between lm and logit models for Stamina belief")
+
+stargazer(model_chem, logit_chem2, type = "html", out = "03-Output/Chem_comparison.html",
+          title = "Comparison between lm and logit models for Chemtrails belief")
+
+
+# Marginal effects for logit models
+
+# Moon landing
+marg_moon_logit <- margins(logit_moon)
+summary(marg_moon_logit)
+
+# Chemtrails
+marg_chem_logit <- margins(logit_chem)
+summary(marg_chem_logit)
+
+# Vaccini
+marg_vacc_logit <- margins(logit_vacc)
+summary(marg_vacc_logit)
+
+# Stamina
+marg_stam_logit <- margins(logit_stam)
+summary(marg_stam_logit)
+
+
+
+
+
+
