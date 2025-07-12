@@ -7,7 +7,7 @@
 
 #Loading necessary libraries
 
-library(haven)       # From Stata .dta to R data frame
+library(haven)       # From Stata.dta to R data frame
 library(dplyr)       
 library(psych)       # for Cronbach's alpha and descriptive statistics
 library(margins)     # For marginal effects
@@ -368,12 +368,13 @@ ggsave("02-Plots/figure1_replicationR.png", plot = figure1, width = 10, height =
 ### EXTENSIONS!
 ## The first extension consists in applying a GLM (logit) to the data
 # We already have a binary version of the variables (value  < 6 means "I don't believe"; value >= 6 means "I believe")
+# The logit model will allow us to understand the factors that influence the belief in conspiracy theories in 2016 vs 2020.
 # When the logit model is applied to 2020 beliefs, it gives us an overview of the factors that influence the belief 
 # in conspiracy theories in 2020. Once we have the results, we can compare the original OLS models (which tell us which
 # factors contribute the most to reducing the belief in conspiracy theories) with the logit models (which tell us the 
 # belief distribution in 2020).
 
-# Moon landing
+# Moon
 logit_moon1 <- glm(moon1_b ~ gender + age + titstu + stealth + sindes, 
                    data = df, family = binomial(link = "logit"))
 summary(logit_moon1)
@@ -399,7 +400,7 @@ summary(logit_chem2)
 stargazer(logit_chem1, logit_chem2, type = "html", out = "03-Output/Chem_logit_models.html",
           title = "Logit models for Chemtrails belief pre and post 2020")
 
-# Vaccini
+# Vaccines
 logit_vacc1 <- glm(vacc1_b ~ gender + age + titstu + stealth + sindes, 
                    data = df, family = binomial(link = "logit"))
 summary(logit_vacc1)
@@ -433,7 +434,7 @@ stargazer(logit_moon2, logit_chem2, logit_vacc2, logit_stam2,
           type = "html", out = "03-Output/Logit2_models.html",
           title = "2020 Separate logit models for each conspiracy belief")
 
-# Comparison lm vs logit model results
+# Comparison OLS vs logit model results
 stargazer(model_moon, logit_moon2, type = "html", out = "03-Output/Moon_comparison.html",
           title = "Comparison between lm and logit models for Moon landing belief")
 
@@ -464,9 +465,6 @@ summary(marg_vacc_logit)
 # Stamina
 marg_stam_logit <- margins(logit_stam)
 summary(marg_stam_logit)
-
-
-
 
 
 

@@ -4,6 +4,9 @@ library(rio)
 # Load the data
 df <- import("01-Data/replication_ds.dta")
 
+export(df, "01-Data/replication_ds.csv")
+
+
 # Check the dimensions of the data
 dim(df)
 
