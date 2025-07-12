@@ -19,7 +19,7 @@ library(stargazer)  # For tables plotting
 
 # Load the dataset
 
-df <- read_dta("01-Data/replication_ds.dta")
+df <- read_dta("00-Data/replication_ds.dta")
 
 
 #DESCRIPTIVES OF THE VARIABLES EMPLOYED

@@ -1,0 +1,21 @@
+---
+title: "Chinello_Multivariate_replication"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+
+library(haven)       # From Stata.dta to R data frame
+library(dplyr)       
+library(psych)       # for Cronbach's alpha and descriptive statistics
+library(margins)     # For marginal effects
+library(plm)         # For fixed effects models
+library(tidyr)       
+library(ggplot2) 
+library(stargazer)  # For tables plotting
+
+df <- read_dta("01-Data/replication_ds.dta")
+
+```{r}
