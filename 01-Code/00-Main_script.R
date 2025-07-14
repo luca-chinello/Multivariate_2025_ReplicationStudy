@@ -11,11 +11,14 @@ library(haven)       # From Stata.dta to R data frame
 library(dplyr)       
 library(psych)       # for Cronbach's alpha and descriptive statistics
 library(margins)     # For marginal effects
-library(plm)         # For fixed effects models
+library(marginaleffects)
+library(knitr)
+library(kableExtra) # For big tables plotting
 library(tidyr)       
 library(ggplot2) 
-library(stargazer)  # For tables plotting
-
+library(stargazer)   # For tables plotting
+library(modelsummary) # For big tables plotting
+library(tibble)
 
 # Load the dataset
 
@@ -199,7 +202,6 @@ regression_data <- df %>%
   filter(!is.na(consp1) & !is.na(consp2))
 
 
-
 # TABLE 1
 
 # diff_moon regression model
@@ -224,29 +226,50 @@ stargazer(model_moon, model_vacc, model_stam, model_chem, type = "html", out = "
 # TABLE 2
 # COEFFICIENTS ONLY
 
-# model_moon margins
-margins(model_moon, at = list(gender = 1:2))
-margins(model_moon, at = list(age = c(25, 65)))
-margins(model_moon, at = list(stealth = c(3, 9)))
-margins(model_moon, at = list(sindes = c("Sx", "Dx")))
+# Function to calculate predicted margins for a given variable and values
+predict_margin <- function(model, var, values) {
+  sapply(values, function(v) {
+    newdata <- regression_data
+    if (is.factor(regression_data[[var]])) {
+      # Ricrea il fattore con lo stesso livello e livelli coerenti
+      newdata[[var]] <- factor(rep(v, nrow(newdata)), levels = levels(regression_data[[var]]))
+    } else {
+      newdata[[var]] <- rep(v, nrow(newdata))
+    }
+    preds <- predict(model, newdata = newdata)
+    mean(preds, na.rm = TRUE)
+  })
+}
 
-# model_vacc margins
-print(margins(model_vacc, at = list(gender = 1:2)))
-print(margins(model_vacc, at = list(age = c(25, 65))))
-print(margins(model_vacc, at = list(stealth = c(3, 9))))
-print(margins(model_vacc, at = list(sindes = c("Sx", "Dx"))))
 
-# model_stam margins
-print(margins(model_stam, at = list(gender = 1:2)))
-print(margins(model_stam, at = list(age = c(25, 65))))
-print(margins(model_stam, at = list(stealth = c(3, 9))))
-print(margins(model_stam, at = list(sindes = c("Sx", "Dx"))))
 
-# model_chem margins
-print(margins(model_chem, at = list(gender = 1:2)))
-print(margins(model_chem, at = list(age = c(25, 65))))
-print(margins(model_chem, at = list(stealth = c(3, 9))))
-print(margins(model_chem, at = list(sindes = c("Sx", "Dx"))))
+# Marginal effects table for each model and variable
+
+margins_table <- data.frame(
+  Variabile = rep(c("gender", "age", "stealth", "sindes"), each = 2),
+  Valore = c("1", "2", 25, 65, 3, 9, "Sx", "Dx"),
+  moon = c(predict_margin(model_moon, "gender", c("1", "2")),
+           predict_margin(model_moon, "age", c(25, 65)),
+           predict_margin(model_moon, "stealth", c(3, 9)),
+           predict_margin(model_moon, "sindes", c("Sx", "Dx"))),
+  vacc = c(predict_margin(model_vacc, "gender", c("1", "2")),
+           predict_margin(model_vacc, "age", c(25, 65)),
+           predict_margin(model_vacc, "stealth", c(3, 9)),
+           predict_margin(model_vacc, "sindes", c("Sx", "Dx"))),
+  stam = c(predict_margin(model_stam, "gender", c("1", "2")),
+           predict_margin(model_stam, "age", c(25, 65)),
+           predict_margin(model_stam, "stealth", c(3, 9)),
+           predict_margin(model_stam, "sindes", c("Sx", "Dx"))),
+  chem = c(predict_margin(model_chem, "gender", c("1", "2")),
+           predict_margin(model_chem, "age", c(25, 65)),
+           predict_margin(model_chem, "stealth", c(3, 9)),
+           predict_margin(model_chem, "sindes", c("Sx", "Dx")))
+)
+
+
+# Visualizza la tabella
+print(margins_table)
+
 
 
 # TABLE A1
@@ -345,6 +368,7 @@ figure1 <- ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
                                 "Vaccine" = 24,
                                 "Stamina" = 23,
                                 "Chemtrails" = 22)) +
+  scale_x_continuous(limits = c(0, 10), breaks = 0:10) +
   labs(
     y = "2020-2016 difference",
     x = "2016 wave average",
@@ -365,7 +389,7 @@ ggsave("02-Plots/figure1_replicationR.png", plot = figure1, width = 10, height =
 
 
 
-### EXTENSIONS!
+### EXTENSION!
 ## The first extension consists in applying a GLM (logit) to the data
 # We already have a binary version of the variables (value  < 6 means "I don't believe"; value >= 6 means "I believe")
 # The logit model will allow us to understand the factors that influence the belief in conspiracy theories in 2016 vs 2020.
@@ -426,13 +450,29 @@ stargazer(logit_stam1, logit_stam2, type = "html", out = "03-Output/Stam_logit_m
 
 
 # Table with the results of the logit models
-stargazer(logit_moon1, logit_chem1, logit_vacc1, logit_stam1, 
+stargazer(logit_moon1, logit_chem1, logit_vacc1, logit_stam1,                       # log-odds results
           type = "html", out = "03-Output/Logit1_models.html",
           title = "2016 Separate logit models for each conspiracy belief")
 
-stargazer(logit_moon2, logit_chem2, logit_vacc2, logit_stam2, 
+stargazer(logit_moon2, logit_chem2, logit_vacc2, logit_stam2,                       # log-odds results
           type = "html", out = "03-Output/Logit2_models.html",
           title = "2020 Separate logit models for each conspiracy belief")
+
+
+# Table with all logit models
+
+models <- list(
+  "Moon 2016" = logit_moon1,
+  "Chem 2016" = logit_chem1,
+  "Vacc 2016" = logit_vacc1,
+  "Stam 2016" = logit_stam1,
+  "Moon 2020" = logit_moon2,
+  "Chem 2020" = logit_chem2,
+  "Vacc 2020" = logit_vacc2,
+  "Stam 2020" = logit_stam2
+)
+modelsummary(models, output = "03-Output/All_Logit_models.html")
+
 
 # Comparison OLS vs logit model results
 stargazer(model_moon, logit_moon2, type = "html", out = "03-Output/Moon_comparison.html",
@@ -448,23 +488,53 @@ stargazer(model_chem, logit_chem2, type = "html", out = "03-Output/Chem_comparis
           title = "Comparison between lm and logit models for Chemtrails belief")
 
 
-# Marginal effects for logit models
+
+# Single Marginal effects for all logit models
 
 # Moon landing
-marg_moon_logit <- margins(logit_moon)
-summary(marg_moon_logit)
+marg_moon_logit1 <- margins(logit_moon1)
+summary(marg_moon_logit1)
+
+marg_moon_logit2 <- margins(logit_moon2)
+summary(marg_moon_logit2)
 
 # Chemtrails
-marg_chem_logit <- margins(logit_chem)
-summary(marg_chem_logit)
+marg_chem_logit1 <- margins(logit_chem1)
+summary(marg_chem_logit1)
+
+marg_chem_logit2 <- margins(logit_chem2)
+summary(marg_chem_logit2)
 
 # Vaccini
-marg_vacc_logit <- margins(logit_vacc)
-summary(marg_vacc_logit)
+marg_vacc_logit1 <- margins(logit_vacc1)
+summary(marg_vacc_logit1)
+
+marg_vacc_logit2 <- margins(logit_vacc2)
+summary(marg_vacc_logit2)
 
 # Stamina
-marg_stam_logit <- margins(logit_stam)
-summary(marg_stam_logit)
+marg_stam_logit1 <- margins(logit_stam1)
+summary(marg_stam_logit1)
+
+marg_stam_logit2 <- margins(logit_stam2)
+summary(marg_stam_logit2)
 
 
+# 2020 Marginal Effects table thanks to library(modelsummary)
 
+models_2020 <- list(
+  "Moon 2020" = logit_moon2,
+  "Chem 2020" = logit_chem2,
+  "Vacc 2020" = logit_vacc2,
+  "Stam 2020" = logit_stam2
+)
+
+modelsummary(
+  models_2020,
+  output = "03-Output/Logit_marginal_effects.html",
+  title = "Logit models Average Marginal Effects (AME) - 2020",
+  estimates = "AME",
+  stars = TRUE,      
+  statistic = "p.value", 
+  gof_map = c("nobs", "r.squared")
+)

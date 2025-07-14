@@ -1,7 +1,7 @@
 library(tidyverse)
 library(lubridate)
 
-data <- read_csv("01-Data/figure2_data.csv")
+data <- read_csv("00-Data/figure2_data.csv")
 
 data_clean <- data %>%
   separate(date, into = c("year", "month", "day"), sep = "-", convert = TRUE) %>%
@@ -37,4 +37,4 @@ figure2 <- ggplot(data_long, aes(x = edate, y = proportion, color = belief_type,
 
 figure2
 
-ggsave("figure2_replicationR.png", plot = figure2, width = 10, height = 6)
+ggsave("02-Plots/Figure 2.png", plot = figure2, width = 10, height = 6)
