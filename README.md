@@ -1,6 +1,6 @@
-# Multivariate-analysis-2025
+# Multivariate-analysis-2025 - DAPS&CO 2024/2025 - Università degli Studi di Milano
 
-This repository contains my final project for the Multivariate analysis 2025 class
+This repository contains my final project for the Multivariate analysis 2025 course
 
 My project aims to replicate Mancosu and Vassallo's original paper "The life cycle of conspiracy theories: evidence from a long-term panel survey on conspiracy beliefs in Italy".
 The original paper is available at: https://www.cambridge.org/core/journals/italian-political-science-review-rivista-italiana-di-scienza-politica/article/life-cycle-of-conspiracy-theories-evidence-from-a-longterm-panel-survey-on-conspiracy-beliefs-in-italy/83FD3CD09161EA356FB8A1EDA8B5E84B
@@ -25,9 +25,25 @@ To run the code, you will need to install the following R packages:
 `library(haven)`       
 `library(dplyr)`       
 `library(psych)`
-`library(margins)`     
-`library(plm)`    
+`library(margins)`
 `library(tidyr)`       
 `library(ggplot2)` 
 `library(stargazer)`
+`library(modelsummary)`
+
+## Final text
+Inside the section `04-Full_paper` you can find the full paper in Word and PDF format. An additional file in rmd and html format
+is also available, it contains the code and some explanations. 
+
+The paper is structured as follows:
+
+- **Abstract**
+- **Introduction**
+- **Concept definition**
+- **Underlying individual factors, the media context, social outcomes**
+- **Data, variables, method and extension**
+- **Replication results**
+- **Possible explanations of the drop in conspiracism: the role of the media**
+- **Discussion and Conclusion**
+- **References**
 

@@ -11,14 +11,11 @@ library(haven)       # From Stata.dta to R data frame
 library(dplyr)       
 library(psych)       # for Cronbach's alpha and descriptive statistics
 library(margins)     # For marginal effects
-library(marginaleffects)
-library(knitr)
-library(kableExtra) # For big tables plotting
 library(tidyr)       
 library(ggplot2) 
 library(stargazer)   # For tables plotting
 library(modelsummary) # For big tables plotting
-library(tibble)
+
 
 # Load the dataset
 
@@ -29,26 +26,26 @@ df <- read_dta("00-Data/replication_ds.dta")
 
 # Printing the frequencies of each column of interest
 
-print(table(df$D38_01_W9, useNA = "ifany"))
-print(table(df$D38_02_W9, useNA = "ifany"))
-print(table(df$D38_03_W9, useNA = "ifany"))
-print(table(df$D38_04_W9, useNA = "ifany"))
+table(df$D38_01_W9, useNA = "ifany")
+table(df$D38_02_W9, useNA = "ifany")
+table(df$D38_03_W9, useNA = "ifany")
+table(df$D38_04_W9, useNA = "ifany")
 
-print(table(df$D38_post_01, useNA = "ifany"))
-print(table(df$D38_post_02, useNA = "ifany"))
-print(table(df$D38_post_03, useNA = "ifany"))
-print(table(df$D38_post_04, useNA = "ifany"))
+table(df$D38_post_01, useNA = "ifany")
+table(df$D38_post_02, useNA = "ifany")
+table(df$D38_post_03, useNA = "ifany")
+table(df$D38_post_04, useNA = "ifany")
 
-print(table(df$SEX, useNA = "ifany"))
-print(table(df$ANNO, useNA = "ifany"))
-print(table(df$AMP, useNA = "ifany"))
-print(table(df$ZONA, useNA = "ifany"))
-print(table(df$scolarita, useNA = "ifany"))
+table(df$SEX, useNA = "ifany")
+table(df$ANNO, useNA = "ifany")
+table(df$AMP, useNA = "ifany")
+table(df$ZONA, useNA = "ifany")
+table(df$scolarita, useNA = "ifany")
 
-print(table(df$S21_1, useNA = "ifany"))
-print(table(df$S21_2, useNA = "ifany"))
-print(table(df$S21_3, useNA = "ifany"))
-print(table(df$S21_4, useNA = "ifany"))
+table(df$S21_1, useNA = "ifany")
+table(df$S21_2, useNA = "ifany")
+table(df$S21_3, useNA = "ifany")
+table(df$S21_4, useNA = "ifany")
 
 
 # DATA MANAGEMENT 
@@ -83,6 +80,7 @@ df <- df %>%
 
 View(df)
 
+
 # Generating the means of pre-2020 conspiracy beliefs
 
 df$consp1 <- rowMeans(df[, c("moon1", "vacc1", "stam1", "chem1")], na.rm = FALSE)
@@ -95,6 +93,7 @@ df$consp2 <- rowMeans(df[, c("moon2", "vacc2", "stam2", "chem2")], na.rm = FALSE
 
 # Generating new columns with different types of dummy variables
 
+#Type b recode: 0 (values 0-5); 1 (values 6-10); NA (values >10)
 df <- df %>%
   mutate(
     across(
@@ -107,10 +106,9 @@ df <- df %>%
       .names = "{.col}_b"
       )
     )
-  
 
 
-# Equivalente a: recode ... (0 = 0) (1/5 = 1) (6/10=2),gen(...)
+# Type c recode: 0 (value 0); 1 (values 1-5); 2 (values 6-10); NA (values >10)
 
 df <- df %>%
   mutate(
@@ -186,6 +184,7 @@ df <- df %>%
     stealth4 = na_if(S21_4, 12)
   )
 
+
 # Chronbach's alpha for stealth variables
 
 print(psych::alpha(df[, c("stealth1", "stealth2", "stealth3", "stealth4")], check.keys=FALSE))
@@ -227,11 +226,11 @@ stargazer(model_moon, model_vacc, model_stam, model_chem, type = "html", out = "
 # COEFFICIENTS ONLY
 
 # Function to calculate predicted margins for a given variable and values
+
 predict_margin <- function(model, var, values) {
   sapply(values, function(v) {
     newdata <- regression_data
     if (is.factor(regression_data[[var]])) {
-      # Ricrea il fattore con lo stesso livello e livelli coerenti
       newdata[[var]] <- factor(rep(v, nrow(newdata)), levels = levels(regression_data[[var]]))
     } else {
       newdata[[var]] <- rep(v, nrow(newdata))
@@ -240,7 +239,6 @@ predict_margin <- function(model, var, values) {
     mean(preds, na.rm = TRUE)
   })
 }
-
 
 
 # Marginal effects table for each model and variable
@@ -267,9 +265,7 @@ margins_table <- data.frame(
 )
 
 
-# Visualizza la tabella
-print(margins_table)
-
+margins_table
 
 
 # TABLE A1
@@ -351,6 +347,8 @@ model_data <- df_long %>%
 
 final_lm_model <- lm(diff ~ factor(pre) * consp, data = model_data)
 
+# Generating the predictions for the model just created
+
 predictions_final <- ggeffects::ggpredict(final_lm_model, terms = c("pre [0:10]", "consp"))
 
 
@@ -361,14 +359,14 @@ figure1 <- ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2, color = "black") +
   geom_point(aes(shape = group), color = "black", fill = "white", size = 2.5) +
   scale_linetype_manual(values = c("Moon" = "solid", 
-                                   "Vaccine" = "dashed", 
+                                   "Vaccine" = "dashed",              # using the same lines as in the original plot
                                    "Stamina" = "dotted", 
                                    "Chemtrails" = "longdash")) +
   scale_shape_manual(values = c("Moon" = 21,
-                                "Vaccine" = 24,
-                                "Stamina" = 23,
-                                "Chemtrails" = 22)) +
-  scale_x_continuous(limits = c(0, 10), breaks = 0:10) +
+                                "Vaccine" = 22,
+                                "Stamina" = 23,                       # reproducing the same shapes as in the original plot
+                                "Chemtrails" = 24)) +
+  scale_x_continuous(limits = c(0, 10), breaks = 0:10) +              # setting a continuous scale 0-10
   labs(
     y = "2020-2016 difference",
     x = "2016 wave average",
@@ -390,13 +388,15 @@ ggsave("02-Plots/figure1_replicationR.png", plot = figure1, width = 10, height =
 
 
 ### EXTENSION!
-## The first extension consists in applying a GLM (logit) to the data
+## This extension consists in applying a GLM (logit) to the data.
 # We already have a binary version of the variables (value  < 6 means "I don't believe"; value >= 6 means "I believe")
 # The logit model will allow us to understand the factors that influence the belief in conspiracy theories in 2016 vs 2020.
 # When the logit model is applied to 2020 beliefs, it gives us an overview of the factors that influence the belief 
 # in conspiracy theories in 2020. Once we have the results, we can compare the original OLS models (which tell us which
 # factors contribute the most to reducing the belief in conspiracy theories) with the logit models (which tell us the 
 # belief distribution in 2020).
+
+# LOGIT MODELS:
 
 # Moon
 logit_moon1 <- glm(moon1_b ~ gender + age + titstu + stealth + sindes, 
@@ -411,6 +411,7 @@ summary(logit_moon2)
 stargazer(logit_moon1, logit_moon2, type = "html", out = "03-Output/Moon_logit_models.html",
           title = "Logit models for Moon landing belief pre and post 2020")
 
+
 # Chemtrails
 logit_chem1 <- glm(chem1_b ~ gender + age + titstu + stealth + sindes, 
                    data = df, family = binomial(link = "logit"))
@@ -424,6 +425,7 @@ summary(logit_chem2)
 stargazer(logit_chem1, logit_chem2, type = "html", out = "03-Output/Chem_logit_models.html",
           title = "Logit models for Chemtrails belief pre and post 2020")
 
+
 # Vaccines
 logit_vacc1 <- glm(vacc1_b ~ gender + age + titstu + stealth + sindes, 
                    data = df, family = binomial(link = "logit"))
@@ -435,6 +437,7 @@ summary(logit_vacc2)
 
 stargazer(logit_vacc1, logit_vacc2, type = "html", out = "03-Output/Vacc_logit_models.html",
           title = "Logit models for Vaccine belief pre and post 2020")
+
 
 # Stamina
 logit_stam1 <- glm(stam1_b ~ gender + age + titstu + stealth + sindes, 

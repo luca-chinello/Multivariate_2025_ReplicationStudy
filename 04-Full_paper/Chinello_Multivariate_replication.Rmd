@@ -1,12 +1,14 @@
 ---
 title: "Chinello_Multivariate_replication"
-output: html_document
+output: "04-Full_paper/Chinello_Multivaraite_replication.html"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
-
-
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE,
+	include = FALSE
+)
 library(haven)       # From Stata.dta to R data frame
 library(dplyr)       
 library(psych)       # for Cronbach's alpha and descriptive statistics
@@ -19,3 +21,4 @@ library(stargazer)  # For tables plotting
 df <- read_dta("01-Data/replication_ds.dta")
 
 ```{r}
+
