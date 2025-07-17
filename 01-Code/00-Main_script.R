@@ -385,7 +385,7 @@ figure1 <- ggplot(predictions_final, aes(x = x, y = predicted, group = group)) +
 
 figure1
 
-ggsave("02-Plots/figure1_replicationR.png", plot = figure1, width = 10, height = 6)
+ggsave("02-Plots/Figure 1.png", plot = figure1, width = 10, height = 6)
 
 
 
