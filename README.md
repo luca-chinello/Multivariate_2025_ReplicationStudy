@@ -8,7 +8,8 @@ The original paper's DOI is:  https://doi.org/10.1017/ipo.2021.57
 
 Data are available at: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/A8ISOH
 
-The original STATA code has been rewritten in R.
+The original STATA code has been rewritten in R. During this process, LLMs were used to find the optimal translation of the original code.
+Human supervision and revision has always been at the core of the entire process.
 
 ## Project structure
 The project is structured as follows:
@@ -16,7 +17,7 @@ The project is structured as follows:
 - `01-Code/`: Contains the R scripts used to replicate the analysis.
 - `02-Plots/`: Contains the plots of the results.
 - `03-Output/`: Contains the output files (tables) of the analysis.
-- `04-Full_paper` : Contains the full paper in rmd, html and PDF format.
+- `04-Full_paper` : Contains the final full paper in pdf and a summary of the main figures in rmd and html format.
 - `README.md`: This file, which provides an overview of the project.
 
 ## Requirements
@@ -31,9 +32,6 @@ To run the code, you will need to install the following R packages:
 `library(stargazer)`
 `library(modelsummary)`
 
-## Final text
-Inside the section `04-Full_paper` you can find the full paper in Word and PDF format. An additional file in rmd and html format
-is also available, it contains the code and some explanations. 
 
 The paper is structured as follows:
 
