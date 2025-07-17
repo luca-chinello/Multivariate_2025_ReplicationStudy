@@ -1,7 +1,7 @@
 library(tidyverse)
 library(lubridate)
 
-data <- read_csv("00-Data/figure2_data.csv")
+data <- read_csv("00-Data/figure2_data.csv", show_col_types = FALSE)
 
 data_clean <- data %>%
   separate(date, into = c("year", "month", "day"), sep = "-", convert = TRUE) %>%

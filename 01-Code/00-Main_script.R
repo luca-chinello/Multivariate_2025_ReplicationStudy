@@ -290,8 +290,8 @@ analysis_data_A2 <- df %>%
     consp2_tot = rowSums(select(., moon2_b, vacc2_b, stam2_b, chem2_b), na.rm = FALSE)
   )
 
-table(analysis_data_A2$consp1_tot, useNA = "ifany")
-table(analysis_data_A2$consp2_tot, useNA = "ifany")
+round(prop.table(table(analysis_data_A2$consp1_tot)) * 100, 1)
+round(prop.table(table(analysis_data_A2$consp2_tot)) * 100, 1)
 
 # Results show how much interviewees believed in conspiracy theories before (consp1_tot) and 
 # after (consp2_tot) 2020
@@ -302,21 +302,23 @@ table(analysis_data_A2$consp2_tot, useNA = "ifany")
 # Displaying how beliefs have changed pre and post 2020: 0 (no belief), 1 (low belief), 2 (high belief)
 
 # Moon landing
-table(df$moon1_c, useNA = "ifany")
-table(df$moon2_c, useNA = "ifany")
+round(prop.table(table(df$moon1_c, useNA = "ifany")) * 100, 1)
+round(prop.table(table(df$moon2_c, useNA = "ifany")) * 100, 1)
+
 
 # Vaccines effects
-table(df$vacc1_c, useNA = "ifany")
-table(df$vacc2_c, useNA = "ifany")
+round(prop.table(table(df$vacc1_c, useNA = "ifany")) * 100, 1)
+round(prop.table(table(df$vacc2_c, useNA = "ifany")) * 100, 1)
+
 
 # Stamina method
-table(df$stam1_c, useNA = "ifany")
-table(df$stam2_c, useNA = "ifany")
+round(prop.table(table(df$stam1_c, useNA = "ifany")) * 100, 1)
+round(prop.table(table(df$stam2_c, useNA = "ifany")) * 100, 1)
 
 
 # Chemtrails
-table(df$chem1_c, useNA = "ifany")
-table(df$chem2_c, useNA = "ifany")
+round(prop.table(table(df$chem1_c, useNA = "ifany")) * 100, 1)
+round(prop.table(table(df$chem2_c, useNA = "ifany")) * 100, 1)
 
 
 # FIGURE 1
@@ -541,3 +543,5 @@ modelsummary(
   statistic = "p.value", 
   gof_map = c("nobs", "r.squared")
 )
+
+# END OF THE SCRIPT
