@@ -14,10 +14,10 @@ Human supervision and revision has always been at the core of the entire process
 ## Project structure
 The project is structured as follows:
 - `00-Data/`: Contains the data files used in the analysis.
-- `01-Code/`: Contains the R scripts used to replicate the analysis.
+- `01-Code/`: Contains the R scripts used to replicate the analysis. The code is directly commented in the script.
 - `02-Plots/`: Contains the plots of the results.
 - `03-Output/`: Contains the output files (tables) of the analysis.
-- `04-Full_paper` : Contains the final full paper in pdf and a summary of the main figures in rmd and html format.
+- `04-Full_paper` : Contains the final full paper in pdf.
 - `README.md`: This file, which provides an overview of the project.
 
 ## Requirements
